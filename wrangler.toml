@@ -1,0 +1,16 @@
+name = "billbot"
+main = "src/index.ts"
+compatibility_date = "2024-01-17"
+node_compat = true
+
+[[durable_objects.bindings]]
+name = "CONVERSATIONS"
+class_name = "ConversationDO"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ConversationDO"]
+
+[vars]
+# Non-sensitive variables can go here
+# Sensitive variables should be set via: wrangler secret put VARIABLE_NAME
