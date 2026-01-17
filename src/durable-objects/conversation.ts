@@ -19,7 +19,6 @@ type DOAction =
 export class ConversationDO implements DurableObject {
   private state: DurableObjectState;
   private sql: SqlStorage;
-  private userId: string = '';
   private readonly MAX_MESSAGES = 50;
   private initialized: boolean = false;
 
@@ -63,40 +62,15 @@ export class ConversationDO implements DurableObject {
   }
 
   private async initializeTables(): Promise<void> {
-    // Create messages table
+    // Simple messages table with only what we need
     this.sql.exec(`
-      CREATE TABLE IF NOT EXISTS conversation_messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+      CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY,
+        role TEXT NOT NULL,
         content TEXT NOT NULL,
-        timestamp INTEGER NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        timestamp INTEGER NOT NULL
       )
     `);
-
-    // Create metadata table to store user info and other conversation metadata
-    this.sql.exec(`
-      CREATE TABLE IF NOT EXISTS conversation_metadata (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Create index for faster queries by timestamp
-    this.sql.exec(`
-      CREATE INDEX IF NOT EXISTS idx_messages_timestamp 
-      ON conversation_messages(timestamp DESC)
-    `);
-
-    // Load userId from metadata if exists
-    const cursor = this.sql.exec(`
-      SELECT value FROM conversation_metadata WHERE key = 'userId'
-    `);
-    const results = [...cursor];
-    if (results.length > 0) {
-      this.userId = results[0].value as string;
-    }
   }
 
   private async addMessage(
@@ -104,40 +78,23 @@ export class ConversationDO implements DurableObject {
     content: string,
     userId: string
   ): Promise<Response> {
-    // Set userId if not already set
-    if (!this.userId) {
-      this.userId = userId;
-      this.sql.exec(`
-        INSERT OR REPLACE INTO conversation_metadata (key, value, updated_at)
-        VALUES ('userId', ?, CURRENT_TIMESTAMP)
-      `, userId);
-    }
-
-    // Insert new message
     const timestamp = Date.now();
+    
+    // Insert message and enforce rolling window in one efficient query
+    // This uses a CTE to delete old messages before inserting the new one
     this.sql.exec(`
-      INSERT INTO conversation_messages (role, content, timestamp)
-      VALUES (?, ?, ?)
-    `, role, content, timestamp);
-
-    // Enforce MAX_MESSAGES limit by deleting oldest messages
-    this.sql.exec(`
-      DELETE FROM conversation_messages
+      DELETE FROM messages 
       WHERE id IN (
-        SELECT id FROM conversation_messages
-        ORDER BY timestamp DESC
-        LIMIT -1 OFFSET ?
-      )
-    `, this.MAX_MESSAGES);
+        SELECT id FROM messages 
+        ORDER BY id ASC 
+        LIMIT MAX(0, (SELECT COUNT(*) FROM messages) - ? + 1)
+      );
+      
+      INSERT INTO messages (role, content, timestamp) 
+      VALUES (?, ?, ?)
+    `, this.MAX_MESSAGES - 1, role, content, timestamp);
 
-    // Get current message count
-    const countCursor = this.sql.exec(`
-      SELECT COUNT(*) as count FROM conversation_messages
-    `);
-    const countResults = [...countCursor];
-    const messageCount = countResults.length > 0 ? (countResults[0].count as number) : 0;
-
-    return new Response(JSON.stringify({ success: true, messageCount }), {
+    return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -145,8 +102,8 @@ export class ConversationDO implements DurableObject {
   private async getHistory(): Promise<Response> {
     const cursor = this.sql.exec(`
       SELECT role, content, timestamp
-      FROM conversation_messages
-      ORDER BY timestamp ASC
+      FROM messages
+      ORDER BY id ASC
     `);
 
     const messages: Message[] = [...cursor].map((row) => ({
@@ -161,7 +118,7 @@ export class ConversationDO implements DurableObject {
   }
 
   private async clearHistory(): Promise<Response> {
-    this.sql.exec(`DELETE FROM conversation_messages`);
+    this.sql.exec(`DELETE FROM messages`);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' },
