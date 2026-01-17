@@ -13,6 +13,8 @@ export async function generateAIResponse(
   config: AIConfig
 ): Promise<string> {
   try {
+    console.log('generateAIResponse called with', messages.length, 'messages');
+    console.log('Messages:', JSON.stringify(messages, null, 2));
     
     // Create the gateway provider with authentication
     // The SDK expects baseURL to point to /v1/ai by default

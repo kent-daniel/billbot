@@ -80,19 +80,29 @@ export class ConversationDO implements DurableObject {
   ): Promise<Response> {
     const timestamp = Date.now();
     
-    // Insert message and enforce rolling window in one efficient query
-    // This uses a CTE to delete old messages before inserting the new one
-    this.sql.exec(`
-      DELETE FROM messages 
-      WHERE id IN (
-        SELECT id FROM messages 
-        ORDER BY id ASC 
-        LIMIT MAX(0, (SELECT COUNT(*) FROM messages) - ? + 1)
-      );
-      
-      INSERT INTO messages (role, content, timestamp) 
-      VALUES (?, ?, ?)
-    `, this.MAX_MESSAGES - 1, role, content, timestamp);
+    // Insert the new message first
+    this.sql.exec(
+      `INSERT INTO messages (role, content, timestamp) VALUES (?, ?, ?)`,
+      role,
+      content,
+      timestamp
+    );
+
+    // Then enforce rolling window by deleting old messages if we exceed MAX_MESSAGES
+    const count = this.sql.exec(`SELECT COUNT(*) as count FROM messages`).one()?.count as number;
+    if (count > this.MAX_MESSAGES) {
+      const toDelete = count - this.MAX_MESSAGES;
+      this.sql.exec(`
+        DELETE FROM messages 
+        WHERE id IN (
+          SELECT id FROM messages 
+          ORDER BY id ASC 
+          LIMIT ?
+        )
+      `, toDelete);
+    }
+
+    console.log(`Added ${role} message. Total messages in history: ${count}`);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' },

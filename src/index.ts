@@ -66,7 +66,9 @@ async function handleDiscordWebhook(request: Request, env: Env, ctx: ExecutionCo
 
     // Handle /chat command
     if (commandName === 'chat') {
+      console.log('Chat command received. Interaction data:', JSON.stringify(interaction.data, null, 2));
       const message = interaction.data?.options?.find((opt: any) => opt.name === 'message')?.value;
+      console.log('Extracted message:', message);
 
       if (!message) {
         return new Response(JSON.stringify({

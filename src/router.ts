@@ -41,6 +41,8 @@ export const appRouter = router({
         const { message } = input;
         const { env, userId } = ctx;
 
+        console.log('Chat.send mutation called with message:', message, 'userId:', userId);
+
         // Get or create Durable Object for this user
         const id = env.CONVERSATIONS.idFromName(userId);
         const stub = env.CONVERSATIONS.get(id);
@@ -64,6 +66,7 @@ export const appRouter = router({
           body: JSON.stringify({ action: 'getHistory' }),
         });
         const { messages } = await historyResponse.json<{ messages: Message[] }>();
+        console.log('Conversation history length:', messages.length);
 
         // Generate AI response
         const aiResponse = await generateAIResponse(messages, {
