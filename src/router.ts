@@ -10,6 +10,7 @@ export interface Context {
 
 export interface Env {
   CONVERSATIONS: DurableObjectNamespace;
+  OAUTH_TOKENS: DurableObjectNamespace;
   DISCORD_TOKEN: string;
   DISCORD_PUBLIC_KEY: string;
   DISCORD_APPLICATION_ID: string;
@@ -17,6 +18,9 @@ export interface Env {
   AI_GATEWAY_API_KEY: string;
   VERCEL_AI_GATEWAY_URL: string;
   ALLOWED_USER_IDS: string;
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  GOOGLE_REDIRECT_URI: string;
 }
 
 const t = initTRPC.context<Context>().create();
