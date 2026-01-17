@@ -1,5 +1,4 @@
 import { generateText } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { Message } from '../durable-objects/conversation';
 
 export interface AIConfig {
@@ -11,13 +10,9 @@ export async function generateAIResponse(
   messages: Message[],
   config: AIConfig
 ): Promise<string> {
-  const { apiKey, model = 'gemini-2.0-flash-exp' } = config;
-
   try {
-    const google = createGoogleGenerativeAI({ apiKey });
-
     const result = await generateText({
-      model: google(model),
+      model: 'google/gemini-2.0-flash-lite',
       messages: messages.map((msg) => ({
         role: msg.role as 'user' | 'assistant' | 'system',
         content: msg.content,

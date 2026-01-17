@@ -11,6 +11,11 @@ class_name = "ConversationDO"
 tag = "v1"
 new_sqlite_classes = ["ConversationDO"]
 
+[observability]
+[observability.logs]
+enabled = false
+invocation_logs = true
+
 [vars]
 # Non-sensitive variables can go here
 # Sensitive variables should be set via: wrangler secret put VARIABLE_NAME
