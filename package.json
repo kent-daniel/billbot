@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.10",
@@ -18,8 +21,10 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241218.0",
+    "@vitest/ui": "^4.0.17",
     "dotenv": "^17.2.3",
     "typescript": "^5.7.2",
+    "vitest": "^4.0.17",
     "wrangler": "^3.95.0"
   }
 }

@@ -11,6 +11,10 @@ class_name = "ConversationDO"
 name = "OAUTH_TOKENS"
 class_name = "OAuthTokensDO"
 
+[[durable_objects.bindings]]
+name = "BILLS"
+class_name = "BillsDO"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["ConversationDO"]
@@ -18,6 +22,10 @@ new_sqlite_classes = ["ConversationDO"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["OAuthTokensDO"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["BillsDO"]
 
 [observability]
 [observability.logs]
