@@ -6,18 +6,11 @@ export interface DiscordService {
 }
 
 export async function verifyDiscordRequest(
-  request: Request,
+  body: string,
+  signature: string,
+  timestamp: string,
   publicKey: string
 ): Promise<boolean> {
-  const signature = request.headers.get('X-Signature-Ed25519');
-  const timestamp = request.headers.get('X-Signature-Timestamp');
-
-  if (!signature || !timestamp) {
-    return false;
-  }
-
-  const body = await request.text();
-
   try {
     return await verifyKey(body, signature, timestamp, publicKey);
   } catch (error) {

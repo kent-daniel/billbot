@@ -13,8 +13,7 @@ export interface Env {
   DISCORD_TOKEN: string;
   DISCORD_PUBLIC_KEY: string;
   DISCORD_APPLICATION_ID: string;
-  VERCEL_AI_GATEWAY_URL: string;
-  VERCEL_AI_API_KEY: string;
+  GEMINI_API_KEY: string;
   ALLOWED_USER_IDS: string;
 }
 
@@ -61,8 +60,7 @@ export const appRouter = router({
 
         // Generate AI response
         const aiResponse = await generateAIResponse(messages, {
-          gatewayUrl: env.VERCEL_AI_GATEWAY_URL,
-          apiKey: env.VERCEL_AI_API_KEY,
+          apiKey: env.GEMINI_API_KEY,
         });
 
         // Store AI response in history
