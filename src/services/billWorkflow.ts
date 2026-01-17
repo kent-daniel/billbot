@@ -121,6 +121,12 @@ export async function executeBillScanWorkflow(
       gmail_message_id: pb.messageId,
     }));
 
+    // Step 7: Add bill results to conversation history as assistant message
+    if (bills.length > 0) {
+      console.log('Step 7: Adding bill results to conversation history...');
+      await addBillResultsToConversation(userId, bills, env);
+    }
+
     return {
       success: true,
       bills,
@@ -298,6 +304,36 @@ async function storeBills(
     body: JSON.stringify({
       userId,
       bills: billsToStore,
+    }),
+  });
+}
+
+/**
+ * Step 7: Add bill results to conversation history as assistant message
+ */
+async function addBillResultsToConversation(
+  userId: string,
+  bills: BillWithMessageId[],
+  env: any
+): Promise<void> {
+  const conversationDOId = env.CONVERSATIONS.idFromName(userId);
+  const conversationStub = env.CONVERSATIONS.get(conversationDOId);
+
+  // Format bill data as a simple string
+  const billSummary = bills.map((bill) => 
+    `${bill.type}: $${bill.amount.toFixed(2)} (issued: ${bill.issue_date})`
+  ).join('\n');
+
+  const message = `Here are your recent bills from the last 30 days:\n\n${billSummary}`;
+
+  await conversationStub.fetch('https://internal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'add',
+      role: 'assistant',
+      content: message,
+      userId,
     }),
   });
 }
