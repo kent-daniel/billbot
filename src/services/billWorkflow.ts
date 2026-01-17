@@ -49,13 +49,15 @@ export async function executeBillScanWorkflow(
     // Step 1: Refresh OAuth token if needed
     console.log('Step 1: Refreshing OAuth token...');
     const token = await refreshTokenIfNeeded(userId, env);
+    console.log('Token obtained successfully (length:', token?.length || 0, ')');
 
     // Step 2: Search Gmail for Origin bills
     console.log('Step 2: Searching Gmail for bills...');
     const messages = await searchGmailForBills(token, daysBack);
+    console.log('Gmail search completed. Messages found:', messages.length);
 
     if (messages.length === 0) {
-      console.log('No bills found in Gmail');
+      console.log('No bills found in Gmail - returning empty result');
       return {
         success: true,
         bills: [],
@@ -100,7 +102,11 @@ export async function executeBillScanWorkflow(
       .filter((hint): hint is BillType => hint !== null);
     const parsedBills = await parseBillsInParallel(
       pdfs.map((pdf) => ({ pdf: pdf.attachment, messageId: pdf.messageId })),
-      subjectHints.length > 0 ? subjectHints : undefined
+      subjectHints.length > 0 ? subjectHints : undefined,
+      {
+        apiKey: env.AI_GATEWAY_API_KEY,
+        gatewayUrl: env.VERCEL_AI_GATEWAY_URL,
+      }
     );
 
     console.log(`Successfully parsed ${parsedBills.length} bills`);
@@ -156,7 +162,10 @@ async function searchGmailForBills(
   daysBack: number
 ): Promise<Array<{ id: string; threadId: string }>> {
   const query = buildOriginBillQuery(daysBack);
+  console.log('Gmail search query:', query);
+  
   const messages = await searchEmails(token, query);
+  console.log('Gmail API returned', messages.length, 'messages');
 
   return messages.map((msg) => ({
     id: msg.id,

@@ -88,17 +88,20 @@ export async function searchEmails(
 ): Promise<GmailMessage[]> {
   try {
     const encodedQuery = encodeURIComponent(query);
-    const response = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodedQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodedQuery}`;
+    console.log('Making Gmail API request to:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log('Gmail API response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('Gmail API error:', response.status, errorData);
       throw new GmailAPIError(
         `Gmail API search failed: ${response.statusText}`,
         response.status,
@@ -107,6 +110,7 @@ export async function searchEmails(
     }
 
     const data: GmailSearchResponse = await response.json();
+    console.log('Gmail API response:', JSON.stringify(data, null, 2));
     return data.messages || [];
   } catch (error) {
     if (error instanceof GmailAPIError) {

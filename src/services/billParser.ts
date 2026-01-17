@@ -4,7 +4,7 @@
  */
 
 import { generateObject } from 'ai';
-import { google } from '@ai-sdk/google';
+import { createGateway } from '@ai-sdk/gateway';
 import { ParsedBillSchema, type BillType, type ParsedBill } from '../types/bills';
 import type { GmailAttachment } from './gmail';
 
@@ -21,24 +21,36 @@ export class BillParserError extends Error {
 const CONFIDENCE_THRESHOLD = 0.7;
 const MAX_RETRIES = 1;
 
+export interface BillParserConfig {
+  apiKey: string;
+  gatewayUrl?: string;
+}
+
 /**
  * Parse a bill PDF using Gemini AI
  * @param pdf - PDF attachment data
  * @param subjectHint - Optional bill type hint from subject line
+ * @param config - AI gateway configuration
  * @returns Parsed bill information
  * @throws BillParserError if parsing fails or confidence is too low
  */
 export async function parseBillWithGemini(
   pdf: GmailAttachment,
-  subjectHint?: BillType
+  subjectHint: BillType | undefined,
+  config: BillParserConfig
 ): Promise<ParsedBill> {
   let lastError: Error | undefined;
+
+  // Create the gateway provider with authentication
+  const gateway = createGateway({
+    apiKey: config.apiKey,
+  });
 
   // Retry once on failure
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const result = await generateObject({
-        model: google('gemini-2.0-flash-exp'),
+        model: gateway('google/gemini-2.0-flash'),
         schema: ParsedBillSchema,
         messages: [
           {
@@ -129,16 +141,18 @@ function buildPrompt(subjectHint?: BillType): string {
  * Parse multiple bills in parallel
  * @param attachments - Array of PDF attachments
  * @param subjectHints - Optional array of subject hints (same length as attachments)
+ * @param config - AI gateway configuration
  * @returns Array of successfully parsed bills
  */
 export async function parseBillsInParallel(
   attachments: Array<{ pdf: GmailAttachment; messageId: string }>,
-  subjectHints?: BillType[]
+  subjectHints: BillType[] | undefined,
+  config: BillParserConfig
 ): Promise<Array<{ bill: ParsedBill; messageId: string }>> {
   const results = await Promise.allSettled(
     attachments.map(async ({ pdf, messageId }, index) => {
       const hint = subjectHints?.[index];
-      const bill = await parseBillWithGemini(pdf, hint);
+      const bill = await parseBillWithGemini(pdf, hint, config);
       return { bill, messageId };
     })
   );
