@@ -6,7 +6,7 @@
  * It orchestrates the bill scanning process in a durable, step-by-step manner.
  */
 
-import type { ParsedBill, BillType } from '../types/bills';
+import type { ParsedBill, BillType, BillWithMessageId } from '../types/bills';
 import type { GmailAttachment, GmailMessageFull } from '../services/gmail';
 import {
   searchEmails,
@@ -29,7 +29,7 @@ export interface WorkflowInput {
 
 export interface WorkflowResult {
   success: boolean;
-  bills: ParsedBill[];
+  bills: BillWithMessageId[];
   error?: string;
 }
 
@@ -115,8 +115,11 @@ export async function executeBillScanWorkflow(
     console.log('Step 6: Storing bills...');
     await storeBills(userId, parsedBills, env);
 
-    // Extract just the bill data (without messageId wrapper)
-    const bills = parsedBills.map((pb) => pb.bill);
+    // Return bills with Gmail message IDs for linking
+    const bills = parsedBills.map((pb) => ({
+      ...pb.bill,
+      gmail_message_id: pb.messageId,
+    }));
 
     return {
       success: true,

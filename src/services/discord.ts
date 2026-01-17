@@ -1,5 +1,5 @@
 import { verifyKey } from 'discord-interactions';
-import type { ParsedBill } from '../types/bills';
+import type { BillWithMessageId } from '../types/bills';
 
 export interface DiscordService {
   verifyRequest: (request: Request, publicKey: string) => Promise<boolean>;
@@ -53,13 +53,13 @@ export function formatErrorMessage(error: unknown): string {
  * Format bill summary for Discord response
  * Phase 5 - Discord Response Formatter
  */
-export function formatBillSummary(bills: ParsedBill[]): string {
+export function formatBillSummary(bills: BillWithMessageId[]): string {
   if (bills.length === 0) {
     return '📊 No bills found in the last 30 days.';
   }
 
   // Group bills by type and get the most recent of each type
-  const billsByType: Record<string, ParsedBill> = {};
+  const billsByType: Record<string, BillWithMessageId> = {};
   
   bills.forEach((bill) => {
     const existing = billsByType[bill.type];
@@ -96,7 +96,8 @@ export function formatBillSummary(bills: ParsedBill[]): string {
       const label = typeLabels[type];
       const amount = bill.amount.toFixed(2);
       const date = formatDate(bill.issue_date);
-      lines.push(`${emoji} ${label}: $${amount} (${date})`);
+      const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${bill.gmail_message_id}`;
+      lines.push(`${emoji} ${label}: $${amount} (${date}) • [View Email](${gmailLink})`);
     }
   });
 

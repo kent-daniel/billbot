@@ -25,3 +25,10 @@ export const ParsedBillSchema = z.object({
  */
 export type BillType = z.infer<typeof BillTypeSchema>;
 export type ParsedBill = z.infer<typeof ParsedBillSchema>;
+
+/**
+ * Extended bill type with Gmail message ID for linking
+ */
+export interface BillWithMessageId extends ParsedBill {
+  gmail_message_id: string;
+}
