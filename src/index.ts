@@ -2,11 +2,12 @@ import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { appRouter, createCaller, type Env, type Context } from './router';
 import { ConversationDO } from './durable-objects/conversation';
 import { OAuthTokensDO } from './durable-objects/oauthTokens';
+import { BillsDO } from './durable-objects/bills';
 import { verifyDiscordRequest, sendDiscordMessage, formatErrorMessage } from './services/discord';
 import { DiscordInteractionType, type DiscordMessage } from './types/discord';
 import { Google } from 'arctic';
 
-export { ConversationDO, OAuthTokensDO };
+export { ConversationDO, OAuthTokensDO, BillsDO };
 
 async function handleDiscordWebhook(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   // SECURITY LAYER 1: Verify Discord signature
@@ -204,15 +205,45 @@ async function handleDiscordWebhook(request: Request, env: Env, ctx: ExecutionCo
       
       // Handle /bill search subcommand
       if (subcommand === 'search') {
-        return new Response(JSON.stringify({
-          type: 4,
-          data: { 
-            content: '📊 **Bill Search - Coming Soon**\n\nBill search functionality will be implemented in Phase 3 (Cloudflare Workflows).\n\nFor now:\n1. Use `/bill connect` to authorize your Gmail account\n2. Phase 3 will add automatic bill scanning and parsing\n3. Phase 4 will add AI-powered bill classification',
-            flags: 64
-          }
+        // Send deferred response immediately
+        const deferredResponse = new Response(JSON.stringify({
+          type: 5, // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
         }), {
           headers: { 'Content-Type': 'application/json' },
         });
+
+        // Process bill scan in background
+        ctx.waitUntil((async () => {
+          try {
+            const { executeBillScanWorkflow, sendWorkflowResult } = await import('./services/billWorkflow');
+            
+            const result = await executeBillScanWorkflow(
+              {
+                userId,
+                channelId: interaction.channel_id,
+                interactionToken: interaction.token,
+                daysBack: 30,
+              },
+              env
+            );
+
+            await sendWorkflowResult(result, interaction.token, env.DISCORD_APPLICATION_ID);
+          } catch (error) {
+            console.error('Error processing bill scan:', error);
+            
+            // Send error as follow-up
+            const followUpUrl = `https://discord.com/api/v10/webhooks/${env.DISCORD_APPLICATION_ID}/${interaction.token}`;
+            await fetch(followUpUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                content: `❌ An error occurred while scanning bills: ${error instanceof Error ? error.message : 'Unknown error'}` 
+              }),
+            });
+          }
+        })());
+
+        return deferredResponse;
       }
       
       // Handle /bill (without subcommand - shouldn't happen with Discord's UI but handle it)

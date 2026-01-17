@@ -11,6 +11,7 @@ export interface Context {
 export interface Env {
   CONVERSATIONS: DurableObjectNamespace;
   OAUTH_TOKENS: DurableObjectNamespace;
+  BILLS: DurableObjectNamespace;
   DISCORD_TOKEN: string;
   DISCORD_PUBLIC_KEY: string;
   DISCORD_APPLICATION_ID: string;
