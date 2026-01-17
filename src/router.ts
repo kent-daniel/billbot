@@ -14,6 +14,8 @@ export interface Env {
   DISCORD_PUBLIC_KEY: string;
   DISCORD_APPLICATION_ID: string;
   GEMINI_API_KEY: string;
+  AI_GATEWAY_API_KEY: string;
+  VERCEL_AI_GATEWAY_URL: string;
   ALLOWED_USER_IDS: string;
 }
 
@@ -60,7 +62,8 @@ export const appRouter = router({
 
         // Generate AI response
         const aiResponse = await generateAIResponse(messages, {
-          apiKey: env.GEMINI_API_KEY,
+          apiKey: env.AI_GATEWAY_API_KEY,
+          gatewayUrl: env.VERCEL_AI_GATEWAY_URL,
         });
 
         // Store AI response in history
