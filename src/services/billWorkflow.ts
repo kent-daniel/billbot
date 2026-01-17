@@ -136,11 +136,12 @@ async function refreshTokenIfNeeded(userId: string, env: any): Promise<string> {
   const response = await tokensStub.fetch('https://internal', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'getAccessToken', userId }),
+    body: JSON.stringify({ action: 'refreshIfNeeded' }),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to get access token');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`Failed to refresh access token: ${JSON.stringify(errorData)}`);
   }
 
   const data = await response.json();
