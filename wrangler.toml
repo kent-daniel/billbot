@@ -7,9 +7,17 @@ node_compat = true
 name = "CONVERSATIONS"
 class_name = "ConversationDO"
 
+[[durable_objects.bindings]]
+name = "OAUTH_TOKENS"
+class_name = "OAuthTokensDO"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["ConversationDO"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["OAuthTokensDO"]
 
 [observability]
 [observability.logs]

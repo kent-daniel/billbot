@@ -21,6 +21,22 @@ const commands = [
     name: 'clear',
     description: 'Clear your conversation history',
   },
+  {
+    name: 'bill',
+    description: 'Check bills from Origin Energy',
+    options: [
+      {
+        name: 'connect',
+        description: 'Connect your Gmail account (one-time setup)',
+        type: 1, // SUB_COMMAND type
+      },
+      {
+        name: 'search',
+        description: 'Search for recent bills (Phase 3 - coming soon)',
+        type: 1, // SUB_COMMAND type
+      },
+    ],
+  },
 ];
 
 async function registerCommands() {
